@@ -6,6 +6,7 @@ import tensorflow as tf
 from numpy import array
 from keras.datasets import imdb
 from keras.preprocessing import sequence
+from keras.models import load_model
 
 IMAGE_FOLDER = os.path.join('static', 'img_pool')
 
@@ -14,13 +15,9 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = IMAGE_FOLDER
 
 # model = load_model('sentiment_analysis.h5')
-# graph = tf.compat.v1.get_default_graph()
-model = tf.keras.models.load_model('sentiment_analysis.h5')
 
-
-# Initialize the variables
-sess = tf.compat.v1.keras.backend.get_session()
-sess.run(tf.compat.v1.global_variables_initializer())
+graph = tf.get_default_graph()
+model = load_model('sentiment_analysis.h5')
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -43,9 +40,9 @@ def sent_analyse_prediction():
         x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)  # Should be same which you used for training data
         vector = np.array([x_test.flatten()])
 
-        # with graph.as_default():
-        probability = model.predict(array([vector][0]))[0][0]
-        class1 = model.predict_classes(array([vector][0]))[0][0]
+        with graph.as_default():
+            probability = model.predict(array([vector][0]))[0][0]
+            class1 = model.predict_classes(array([vector][0]))[0][0]
 
         if class1 == 0:
             sentiment = 'Negative'
@@ -53,7 +50,7 @@ def sent_analyse_prediction():
         else:
             sentiment = 'Positive'
             img_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'Smiling_Emoji.png')
-    return render_template('home.html', text=text, sentiment=sentiment, probability=probability, image=img_filename)
+    return render_template('home.html', text=text, sentiment=sentiment, probability=probability*100, image=img_filename)
 
 
 if __name__ == "__main__":
